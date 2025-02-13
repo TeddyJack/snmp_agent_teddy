@@ -5,6 +5,7 @@ from pysnmp.smi import builder
 from threading import Thread
 import asyncio
 from pysnmp.hlapi.v1arch.asyncio import *
+import os
 
 
 class SnmpAgent():
@@ -20,8 +21,9 @@ class SnmpAgent():
         mibBuilder = mibInstrum.get_mib_builder()
 
         # Load structure from MIB-file (<mib_file_name>.py) to context
-        mibBuilder.add_mib_sources(builder.DirMibSource('/home/teddy/.pysnmp/mibs'))
+        mibBuilder.add_mib_sources(builder.DirMibSource(os.path.expanduser("~") + '/.pysnmp/mibs'))
         mibBuilder.load_module(mib_file_name)
+
 
         # Create instances of all scalar objects in context
         (MibScalar, MibScalarInstance) = mibBuilder.import_symbols("SNMPv2-SMI", "MibScalar", "MibScalarInstance")
@@ -90,10 +92,13 @@ class SnmpAgent():
         self.mibInstrum.write_variables((table_name.name + (1, n_columns, row_idx), 'destroy'))
     
 
-    async def __send_notif_async(self, notif_name, obj_names, values):
+    async def __send_notif_async(self, notif_name, values, obj_names=None):
         snmpDispatcher = SnmpDispatcher()
 
-        arg = [(obj_name.name, value) for obj_name, value in zip(obj_names, values)]
+        if obj_names is None:
+            arg = [(self.import_symbols(obj_item[1])[0].name, value) for obj_item, value in zip(notif_name.objects, values)]
+        else:
+            arg = [(obj_name.name, value) for obj_name, value in zip(obj_names, values)]
 
         result = await send_notification(
             snmpDispatcher,
@@ -111,5 +116,5 @@ class SnmpAgent():
         snmpDispatcher.transport_dispatcher.close_dispatcher()
     
 
-    def send_notif(self, notif_name, obj_names, values):
+    def send_notif(self, notif_name, obj_names, values=None):
         asyncio.run(self.__send_notif_async(notif_name, obj_names, values))

@@ -17,5 +17,5 @@ while True:
     my_agent.write_scalar(temperature, randint(-100, 100))
     for i in range(5):
         my_agent.write_row(table, i + 1, [names[i], randint(0, 80)])
-    my_agent.send_notif(notification, [name, age], ['Nelly', 74])
+    my_agent.send_notif(notification, ['Nelly', randint(80, 100)])
     sleep(3)
