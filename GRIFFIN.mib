@@ -1,0 +1,124 @@
+GRIFFIN DEFINITIONS ::= BEGIN
+
+IMPORTS
+    enterprises, NOTIFICATION-TYPE, MODULE-IDENTITY, Integer32, Unsigned32
+        FROM SNMPv2-SMI
+    OBJECT-TYPE
+        FROM RFC-1212
+    TruthValue, DisplayString, RowStatus
+        FROM SNMPv2-TC;
+
+
+griffin MODULE-IDENTITY
+    LAST-UPDATED    "202501310000Z"
+    ORGANIZATION    "NIITV"
+    CONTACT-INFO    "Puerto Rico"
+    DESCRIPTION     "Test MIB"
+    REVISION        "202501310000Z"
+    DESCRIPTION     "Initial version"
+    ::= { ntk18 69 }
+
+
+-- Create niitv and ntk18 folders in global MIB tree
+niitv OBJECT IDENTIFIER ::= { enterprises 8080 }
+ntk18 OBJECT IDENTIFIER ::= { niitv 18 }
+
+
+
+
+--
+-- Scalar
+--
+
+serialNumber OBJECT-TYPE
+    SYNTAX DisplayString
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "Serial number."
+    ::= { griffin 1 }
+
+temperature OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION "Temperature."
+    ::= { griffin 2 }
+
+
+
+
+--
+-- Table
+--
+
+table OBJECT-TYPE
+    SYNTAX SEQUENCE OF Row
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION "Table of measurements."
+    ::= { griffin 3 }
+
+    row OBJECT-TYPE
+        SYNTAX Row
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION "Row in a table."
+        INDEX { rowIndex }
+        ::= { table 1 }
+    
+    Row ::=
+        SEQUENCE {
+            rowIndex    Unsigned32,
+            name        DisplayString,
+            age         Unsigned32,
+            rowStatus   RowStatus
+        }
+    
+        rowIndex OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION "Index of row."
+            ::= { row 1 }
+        
+        name OBJECT-TYPE
+            SYNTAX DisplayString
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION "Name."
+            ::= { row 2 }
+        
+        age OBJECT-TYPE
+            SYNTAX Unsigned32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION "Age."
+            ::= { row 3 }
+        
+        rowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION "Status column used for creating, modifying, deleting rows."
+            ::= { row 4 }
+
+
+
+
+--
+-- Notifications
+---
+
+notification NOTIFICATION-TYPE
+    OBJECTS {
+        name,
+        age
+    }
+    STATUS current
+    DESCRIPTION "One of the humans is too old."
+    ::= { griffin 4 }
+
+
+
+
+END
