@@ -24,8 +24,7 @@ class SnmpAgent():
         mibBuilder.add_mib_sources(builder.DirMibSource(os.path.expanduser("~") + '/.pysnmp/mibs'))
         mibBuilder.load_module(mib_file_name)
 
-
-        # Create instances of all scalar objects in context
+        # Find all scalar and tabular objects in context
         (MibScalar, MibScalarInstance, MibTable, MibTableColumn) = mibBuilder.import_symbols(
             "SNMPv2-SMI", "MibScalar", "MibScalarInstance", "MibTable", "MibTableColumn")
         scalars = []
@@ -35,9 +34,10 @@ class SnmpAgent():
                 scalars.append(obj)
             elif obj.__class__ is MibTable:
                 tables.append(obj)
+                obj.rows_indexes = []
+        # Create instances of all scalars
         for s in scalars:
             mibBuilder.export_symbols(mib_file_name, MibScalarInstance(s.name, (0,), s.syntax))
-        
         # Count columns in tables
         for t in tables:
             n_columns = 0
@@ -87,24 +87,40 @@ class SnmpAgent():
         self.mibInstrum.write_variables((object_name.name + (0,), value))
 
 
-    def write_row(self, table_name, row_idx, values, columns_names=None):
-        arg = []
-        if columns_names is None:
-            column_idx = 2  # because 1 is rowIndex (inaccessible)
-            for item in values:
-                arg.append((table_name.name + (1, column_idx, row_idx), item))
-                column_idx += 1
-        else:
-            arg = [(column_name.name, value) for column_name, value in zip(columns_names, values)]
+    def write_row(self, table_name, row_idx, values):
+        # column idx starts from 2 because 1 is rowIndex
+        args = [(table_name.name + (1, i + 2, row_idx), value) for i, value in enumerate(values)]
         try:
-            self.mibInstrum.write_variables(*arg, (table_name.name + (1, table_name.n_columns, row_idx), 'active'))
+            self.mibInstrum.write_variables(*args, (table_name.name + (1, table_name.n_columns, row_idx), 'active'))
         except:
-            self.mibInstrum.write_variables(*arg, (table_name.name + (1, table_name.n_columns, row_idx), 'createAndGo'))
+            self.mibInstrum.write_variables(*args, (table_name.name + (1, table_name.n_columns, row_idx), 'createAndGo'))
+            table_name.rows_indexes.append(row_idx)
+    
+
+    def write_cells(self, table_name, row_idx, columns_names, values):
+        # possible only if row exists
+        if row_idx not in table_name.rows_indexes:
+            return False
+        args = [(column_name.name + (row_idx,), value) for column_name, value in zip(columns_names, values)]
+        self.mibInstrum.write_variables(*args, (table_name.name + (1, table_name.n_columns, row_idx), 'active'))
+        return True
 
 
     def delete_row(self, table_name, row_idx):
-        # deleting inexisting row leads to error
+        if row_idx not in table_name.rows_indexes:
+            return False
         self.mibInstrum.write_variables((table_name.name + (1, table_name.n_columns, row_idx), 'destroy'))
+        table_name.rows_indexes.remove(row_idx)
+        return True
+    
+
+    def clear_table(self, table_name):
+        if not table_name.rows_indexes:
+            return False
+        args = [(table_name.name + (1, table_name.n_columns, row_idx), 'destroy') for row_idx in table_name.rows_indexes]
+        self.mibInstrum.write_variables(*args)
+        table_name.rows_indexes.clear()
+        return True
     
 
     async def __send_notif_async(self, notif_name, values, obj_names=None):

@@ -5,8 +5,8 @@ from random import randint
 
 my_agent = SnmpAgent('127.0.0.1', 1161, 'public', 'GRIFFIN')
 
-(serialNumber, temperature, table, name, age, notification) = my_agent.import_symbols(
-    "serialNumber", "temperature", "table", "name", "age", "notification")
+(serialNumber, temperature, table, notification) = my_agent.import_symbols(
+    "serialNumber", "temperature", "table", "notification")
 
 # write some constant scalar value
 my_agent.write_scalar(serialNumber, "0421")
@@ -19,3 +19,4 @@ while True:
         my_agent.write_row(table, i + 1, [names[i], randint(0, 80)])
     my_agent.send_notif(notification, ['Nelly', randint(80, 100)])
     sleep(3)
+

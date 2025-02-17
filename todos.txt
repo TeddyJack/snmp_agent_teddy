@@ -1,0 +1,10 @@
+1) When to create scalar instances
+In current version scalar instances are created at the beginning (in the __init__())
+Code is simple. But if manager requests scalar value before it was firstly written, he will get timeout error.
+The other way is to create instance in function write_scalar() at the first writing (using try-except).
+Code is more complex. But if manager requests scalar value before it was firstly written, he will get "no such instance" response.
+Don't know which option is better.
+
+2) Strict row indexing in tables
+Now function write_row() allows to create row with any index (if row doesn't exist), that might be confusing. Existing row indexes are stored inside table-object.
+Should forbid this function to create rows, allow only to rewrite contents. New rows should be created by append_row() function. Table-object should store just number of rows.
