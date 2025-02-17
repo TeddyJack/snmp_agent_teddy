@@ -8,3 +8,9 @@ Don't know which option is better.
 2) Strict row indexing in tables
 Now function write_row() allows to create row with any index (if row doesn't exist), that might be confusing. Existing row indexes are stored inside table-object.
 Should forbid this function to create rows, allow only to rewrite contents. New rows should be created by append_row() function. Table-object should store just number of rows.
+
+3) "rowStatus" column in tables
+Now this column MUST be present in MIB file. For manager that column is unnecessary. MIB file is little bit dirty.
+The other way - rowStatus MUST be absent in MIB file, and created automatically with code. MIB file is clean.
+Problem is some example MIB files have that column, some of them - don't.
+Maybe I should detect presence of rowStatus-column of every table and create it if not present? Don't know how to detect yet.

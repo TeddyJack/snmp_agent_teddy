@@ -7,8 +7,13 @@ Used Python packages:
 (install via PIP if not present)
 
 
+Important requirements for custom MIB file:
+- tables must have "rowStatus" column (always the last one)
+
+
 # This website was used for MIB file validation:
 https://www.simpleweb.org/ietf/mibs/validate/
+
 
 # Exec this command in Linux terminal to compile MIB files into .py format (mibdump is utility of pysmi)
 mibdump --generate-mib-texts --destination-format pysnmp ./<filename>.mib
