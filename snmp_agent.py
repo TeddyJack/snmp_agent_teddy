@@ -2,7 +2,6 @@ from pysnmp.entity import engine, config
 from pysnmp.entity.rfc3413 import cmdrsp, context
 from pysnmp.carrier.asyncio.dgram import udp
 from pysnmp.smi import builder
-from threading import Thread
 import asyncio
 from pysnmp.hlapi.v1arch.asyncio import *
 import os
@@ -10,10 +9,10 @@ import os
 
 class SnmpAgent():
 
-    def __init__(self, mngr_ip_addr, agent_port, community_string, mib_file_name):
+    def __init__(self, agent_port, mngr_ip_addr, mngr_port, community_string, mib_file_name):
         # Basic IPv4 and SNMPv2c setup
         snmpEngine = engine.SnmpEngine()
-        config.add_transport(snmpEngine, udp.DOMAIN_NAME, udp.UdpTransport().open_server_mode((mngr_ip_addr, agent_port)))
+        config.add_transport(snmpEngine, udp.DOMAIN_NAME, udp.UdpTransport().open_server_mode(('0.0.0.0', agent_port)))
         config.add_v1_system(snmpEngine, "my-area", community_string)
         config.add_vacm_user(snmpEngine, 2, "my-area", "noAuthNoPriv", (1, 3, 6), (1, 3, 6))
         snmpContext = context.SnmpContext(snmpEngine)
@@ -52,21 +51,19 @@ class SnmpAgent():
         cmdrsp.NextCommandResponder(snmpEngine, snmpContext)
         cmdrsp.BulkCommandResponder(snmpEngine, snmpContext)
 
-        # Register an imaginary never-ending job to keep I/O dispatcher running forever
-        snmpEngine.transport_dispatcher.job_started(1)
-
-        # Create links to inner objects for other methods to access them
+        # Create links to attributes for other methods to access them
         self.snmpEngine = snmpEngine
         self.mibBuilder = mibBuilder
         self.mib_file_name = mib_file_name
         self.mibInstrum = mibInstrum
         self.community_string = community_string
+        self.mngr_ip_addr = mngr_ip_addr
+        self.mngr_port = mngr_port
 
-        # Run dispatcher in new thread
-        Thread(target=self.__dispatcher).start()
 
-
-    def __dispatcher(self):
+    def run_dispatcher(self):
+        # Register an imaginary never-ending job to keep I/O dispatcher running forever
+        self.snmpEngine.transport_dispatcher.job_started(1)
         # Run I/O dispatcher which would receive queries and send responses
         try:
             self.snmpEngine.open_dispatcher()
@@ -75,7 +72,7 @@ class SnmpAgent():
             raise
 
 
-    def stop(self):
+    def stop_dispatcher(self):
         self.snmpEngine.close_dispatcher()
 
 
@@ -134,7 +131,7 @@ class SnmpAgent():
         result = await send_notification(
             snmpDispatcher,
             CommunityData(self.community_string, mpModel=1),
-            await UdpTransportTarget.create(("127.0.0.1", 162)),
+            await UdpTransportTarget.create((self.mngr_ip_addr, self.mngr_port)),
             "trap",
             NotificationType(ObjectIdentity(notif_name.name)).load_mibs().add_varbinds(*arg)
         )
@@ -147,5 +144,5 @@ class SnmpAgent():
         snmpDispatcher.transport_dispatcher.close_dispatcher()
     
 
-    def send_notif(self, notif_name, obj_names, values=None):
-        asyncio.run(self.__send_notif_async(notif_name, obj_names, values))
+    def send_notif(self, notif_name, values, obj_names=None):
+        asyncio.run(self.__send_notif_async(notif_name, values, obj_names))

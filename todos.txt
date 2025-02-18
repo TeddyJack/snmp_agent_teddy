@@ -14,3 +14,9 @@ Now this column MUST be present in MIB file. For manager that column is unnecess
 The other way - rowStatus MUST be absent in MIB file, and created automatically with code. MIB file is clean.
 Problem is some example MIB files have that column, some of them - don't.
 Maybe I should detect presence of rowStatus-column of every table and create it if not present? Don't know how to detect yet.
+
+4) Erase and create SNMP agent again
+> snmpEngine.close_dispatcher()   # yeah that closes the dispatcher, good
+> snmpEngine.open_dispatcher()    # but opening after closing doesn't work
+I need to be able to fully shutdown and start SNMP agent in runtime! How to do it?
+Also function snmpEngine.open_dispatcher() literally running forever. If it executed in separate thread, that thread never stops.
