@@ -39,11 +39,10 @@ class SnmpAgent():
             mibBuilder.export_symbols(mib_file_name, MibScalarInstance(s.name, (0,), s.syntax))
         # Count columns in tables
         for t in tables:
-            n_columns = 0
+            t.n_columns = 0
             for obj in mibBuilder.mibSymbols[mib_file_name].values():
                 if obj.__class__ is MibTableColumn and obj.name[:-2] == t.name:
-                    n_columns += 1
-                t.n_columns = n_columns
+                    t.n_columns += 1
         
         # Register SNMP Applications at the SNMP engine for particular SNMP context
         cmdrsp.GetCommandResponder(snmpEngine, snmpContext)
