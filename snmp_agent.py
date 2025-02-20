@@ -23,21 +23,14 @@ class SnmpAgent():
         mibBuilder.add_mib_sources(builder.DirMibSource(os.path.expanduser("~") + '/.pysnmp/mibs'))
         mibBuilder.load_module(mib_file_name)
 
-        # Find all scalar and tabular objects in context
-        (MibScalar, MibScalarInstance, MibTable, MibTableColumn) = mibBuilder.import_symbols(
-            "SNMPv2-SMI", "MibScalar", "MibScalarInstance", "MibTable", "MibTableColumn")
-        scalars = []
+        # Find all tabular objects and count columns number
+        (MibTable, MibTableColumn) = mibBuilder.import_symbols(
+            "SNMPv2-SMI", "MibTable", "MibTableColumn")
         tables = []
         for obj in mibBuilder.mibSymbols[mib_file_name].values():
-            if obj.__class__ is MibScalar:
-                scalars.append(obj)
-            elif obj.__class__ is MibTable:
+            if obj.__class__ is MibTable:
                 tables.append(obj)
                 obj.rows_indexes = []
-        # Create instances of all scalars
-        for s in scalars:
-            mibBuilder.export_symbols(mib_file_name, MibScalarInstance(s.name, (0,), s.syntax))
-        # Count columns in tables
         for t in tables:
             t.n_columns = 0
             for obj in mibBuilder.mibSymbols[mib_file_name].values():
@@ -80,7 +73,12 @@ class SnmpAgent():
 
 
     def write_scalar(self, object_name, value):
-        self.mibInstrum.write_variables((object_name.name + (0,), value))
+        try:
+            self.mibInstrum.write_variables((object_name.name + (0,), value))
+        except:
+            (MibScalarInstance, ) = self.mibBuilder.import_symbols("SNMPv2-SMI", "MibScalarInstance")
+            self.mibBuilder.export_symbols(self.mib_file_name, MibScalarInstance(object_name.name, (0,), object_name.syntax))
+            self.mibInstrum.write_variables((object_name.name + (0,), value))
 
 
     def write_row(self, table_name, row_idx, values):
